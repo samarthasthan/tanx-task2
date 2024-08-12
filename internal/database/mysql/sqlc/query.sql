@@ -22,5 +22,14 @@ DELETE FROM Verifications WHERE UserID = ?;
 SELECT Password FROM Users WHERE Email = ?;
 
 -- name: GetUserByEmail :one
-SELECT UserID, Name, Email, Password FROM Users WHERE Email = ?;
+SELECT UserID, Name, Email, Password, Type FROM Users WHERE Email = ?;
 
+-- name: CreateCommodity :exec
+INSERT INTO Commodities (CommodityId, UserID, Name, Description, Price, Category)
+VALUES (?,?,?,?,?,?);
+
+-- name: GetCommodities :many
+SELECT CommodityId, UserID, Name, Description, Price, Status, Category, CreatedAt, UpdatedAt FROM Commodities;
+
+-- name: GetCommoditiesByCategory :many
+SELECT CommodityId, UserID, Name, Description, Price, Status, Category, CreatedAt, UpdatedAt FROM Commodities WHERE Category = ?;

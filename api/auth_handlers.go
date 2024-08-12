@@ -15,14 +15,15 @@ func (h *Handlers) handleSignUp(c echo.Context) error {
 		return err
 	}
 	if err := c.Validate(s); err != nil {
-		return c.JSON(http.StatusBadRequest, err)
+		return c.JSON(http.StatusBadRequest, map[string]any{"stats": "error", "message": "User could not be created", "payload": nil})
 	}
 
-	if err := h.controller.SignUp(c, s); err != nil {
+	user_id, err := h.controller.SignUp(c, s)
+	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	return c.JSON(200, map[string]string{"message": "Account created successfully"})
+	return c.JSON(200, map[string]any{"stats": "success", "message": "User created successfully", "payload": map[string]any{"user_id": user_id}})
 }
 
 // OTPVerification handles the OTP verification request
@@ -69,6 +70,7 @@ func (h *Handlers) handleVerify(c echo.Context) error {
 		"id":    c.Get("id"),
 		"name":  c.Get("name"),
 		"email": c.Get("email"),
+		"type": c.Get("type"),
 	})
 }
 
@@ -95,6 +97,7 @@ func (h *Handlers) validateToken(next echo.HandlerFunc) echo.HandlerFunc {
 		c.Set("id", claims["id"])
 		c.Set("name", claims["name"])
 		c.Set("email", claims["email"])
+		c.Set("type", claims["type"])
 		return next(c)
 	}
 }

@@ -16,13 +16,13 @@ import (
 	"github.com/samarthasthan/tanx-task/pkg/otp"
 )
 
-func (c *Controller) SignUp(ctx echo.Context, u *models.SignUp) error {
+func (c *Controller) SignUp(ctx echo.Context, u *models.SignUp) (user_id string, error error) {
 	mysql := c.mysql.(*database.MySQL)
 
 	// Hash the password
 	hashedPassword, err := bcrpyt.HashPassword(u.Password)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	dbCtx := ctx.Request().Context()
@@ -34,10 +34,11 @@ func (c *Controller) SignUp(ctx echo.Context, u *models.SignUp) error {
 		Name:     u.Name,
 		Email:    u.Email,
 		Password: hashedPassword,
+		Type:     u.Type,
 	})
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	OTP := otp.GenerateVerificationCode()
@@ -50,7 +51,7 @@ func (c *Controller) SignUp(ctx echo.Context, u *models.SignUp) error {
 	})
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Create a new Mail struct
@@ -72,7 +73,7 @@ func (c *Controller) SignUp(ctx echo.Context, u *models.SignUp) error {
 		log.Println(err.Error())
 	}
 
-	return nil
+	return userID, nil
 }
 
 func (c *Controller) VerifyOTP(ctx echo.Context, v *models.VerifyOTP) error {
@@ -160,6 +161,7 @@ func (c *Controller) createToken(u sqlc.GetUserByEmailRow) (string, error) {
 			"id":         u.Userid,
 			"name":       u.Name,
 			"email":      u.Email,
+			"type":       u.Type,
 			"expires_at": time.Now().Add(356 * time.Hour * 24).Unix(),
 		})
 

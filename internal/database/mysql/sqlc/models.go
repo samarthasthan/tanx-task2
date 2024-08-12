@@ -15,6 +15,7 @@ type Bid struct {
 	Userid      string
 	Price       string
 	Status      string
+	Duration    int32
 	Createdat   time.Time
 	Updatedat   time.Time
 	Deletedat   sql.NullTime
@@ -23,6 +24,8 @@ type Bid struct {
 type Commodity struct {
 	Commodityid string
 	Userid      string
+	Name        string
+	Description string
 	Price       string
 	Status      string
 	Category    string

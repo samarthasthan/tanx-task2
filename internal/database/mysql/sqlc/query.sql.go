@@ -34,6 +34,32 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) er
 	return err
 }
 
+const createCommodity = `-- name: CreateCommodity :exec
+INSERT INTO Commodities (CommodityId, UserID, Name, Description, Price, Category)
+VALUES (?,?,?,?,?,?)
+`
+
+type CreateCommodityParams struct {
+	Commodityid string
+	Userid      string
+	Name        string
+	Description string
+	Price       string
+	Category    string
+}
+
+func (q *Queries) CreateCommodity(ctx context.Context, arg CreateCommodityParams) error {
+	_, err := q.db.ExecContext(ctx, createCommodity,
+		arg.Commodityid,
+		arg.Userid,
+		arg.Name,
+		arg.Description,
+		arg.Price,
+		arg.Category,
+	)
+	return err
+}
+
 const createVerification = `-- name: CreateVerification :exec
 INSERT INTO Verifications (VerificationId, UserID, OTP, ExpiresAt)
 VALUES (?,?,?,?)
@@ -65,6 +91,104 @@ func (q *Queries) DeleteVerification(ctx context.Context, userid string) error {
 	return err
 }
 
+const getCommodities = `-- name: GetCommodities :many
+SELECT CommodityId, UserID, Name, Description, Price, Status, Category, CreatedAt, UpdatedAt FROM Commodities
+`
+
+type GetCommoditiesRow struct {
+	Commodityid string
+	Userid      string
+	Name        string
+	Description string
+	Price       string
+	Status      string
+	Category    string
+	Createdat   time.Time
+	Updatedat   time.Time
+}
+
+func (q *Queries) GetCommodities(ctx context.Context) ([]GetCommoditiesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCommodities)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCommoditiesRow
+	for rows.Next() {
+		var i GetCommoditiesRow
+		if err := rows.Scan(
+			&i.Commodityid,
+			&i.Userid,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.Status,
+			&i.Category,
+			&i.Createdat,
+			&i.Updatedat,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCommoditiesByCategory = `-- name: GetCommoditiesByCategory :many
+SELECT CommodityId, UserID, Name, Description, Price, Status, Category, CreatedAt, UpdatedAt FROM Commodities WHERE Category = ?
+`
+
+type GetCommoditiesByCategoryRow struct {
+	Commodityid string
+	Userid      string
+	Name        string
+	Description string
+	Price       string
+	Status      string
+	Category    string
+	Createdat   time.Time
+	Updatedat   time.Time
+}
+
+func (q *Queries) GetCommoditiesByCategory(ctx context.Context, category string) ([]GetCommoditiesByCategoryRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCommoditiesByCategory, category)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCommoditiesByCategoryRow
+	for rows.Next() {
+		var i GetCommoditiesByCategoryRow
+		if err := rows.Scan(
+			&i.Commodityid,
+			&i.Userid,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.Status,
+			&i.Category,
+			&i.Createdat,
+			&i.Updatedat,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOTP = `-- name: GetOTP :one
 SELECT OTP, ExpiresAt FROM Verifications WHERE UserID = ?
 `
@@ -93,7 +217,7 @@ func (q *Queries) GetPasswordByEmail(ctx context.Context, email string) (string,
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT UserID, Name, Email, Password FROM Users WHERE Email = ?
+SELECT UserID, Name, Email, Password, Type FROM Users WHERE Email = ?
 `
 
 type GetUserByEmailRow struct {
@@ -101,6 +225,7 @@ type GetUserByEmailRow struct {
 	Name     string
 	Email    string
 	Password string
+	Type     string
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
@@ -111,6 +236,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 		&i.Name,
 		&i.Email,
 		&i.Password,
+		&i.Type,
 	)
 	return i, err
 }

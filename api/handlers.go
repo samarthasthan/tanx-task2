@@ -42,11 +42,11 @@ func (h *Handlers) Handle() {
 	// Handle the authentication routes
 	h.RegisterValidator()
 	h.HandleAuth()
+	h.HandleCommodity()
 }
 
-// HandleAuth handles the auth routes
 func (h *Handlers) HandleAuth() {
-	auth := h.Group("/auth")
+	auth := h.Group("/user")
 	auth.POST("/signup", h.handleSignUp)
 	auth.POST("/otp-verification", h.handleOTPVerification)
 	auth.POST("/login", h.handleLogin)
@@ -54,4 +54,11 @@ func (h *Handlers) HandleAuth() {
 	authRes := h.Group("/auth")
 	authRes.Use(h.validateToken)
 	authRes.POST("/verify", h.handleVerify)
+}
+
+func (h *Handlers) HandleCommodity() {
+	comm := h.Group("/commodity")
+	comm.Use(h.validateToken)
+	comm.POST("/list", h.handleAddCommodity)
+	comm.GET("/list", h.handleGetCommodities)
 }
