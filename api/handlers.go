@@ -61,4 +61,7 @@ func (h *Handlers) HandleCommodity() {
 	comm.Use(h.validateToken)
 	comm.POST("/list", h.handleAddCommodity)
 	comm.GET("/list", h.handleGetCommodities)
+	comm.POST("/bid", h.handleCreateBid)
+	comm.GET("/:commodity_id/bid", h.HandleCommodityWithBids)
+	comm.POST("/:bid_id/accept-bid", h.handleAcceptBid)
 }

@@ -33,3 +33,22 @@ SELECT CommodityId, UserID, Name, Description, Price, Status, Category, CreatedA
 
 -- name: GetCommoditiesByCategory :many
 SELECT CommodityId, UserID, Name, Description, Price, Status, Category, CreatedAt, UpdatedAt FROM Commodities WHERE Category = ?;
+
+-- name: CreateBid :exec
+INSERT INTO Bids (BidId, CommodityId, UserID, Price,Duration)
+VALUES (?,?,?,?,?);
+
+-- name: GetCommodity :one
+SELECT CommodityId, UserID, Name, Description, Price, Status, Category, CreatedAt, UpdatedAt FROM Commodities WHERE CommodityId = ?;
+
+-- name: GetBidsForCommodity :many
+SELECT BidId, CommodityId, UserID, Price, Status, Duration FROM Bids WHERE CommodityId = ?;
+
+-- name: AcceptBid :exec
+UPDATE Bids SET Status = "accepted" WHERE BidId = ?;
+
+-- name: UpdateCommodityStatus :exec
+UPDATE Commodities SET Status = ? WHERE CommodityId = ?;
+
+-- name: GetCommoditiesByBidId :one
+SELECT CommodityId FROM Bids WHERE BidId = ?;

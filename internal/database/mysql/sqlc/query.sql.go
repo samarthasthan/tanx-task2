@@ -10,6 +10,15 @@ import (
 	"time"
 )
 
+const acceptBid = `-- name: AcceptBid :exec
+UPDATE Bids SET Status = "accepted" WHERE BidId = ?
+`
+
+func (q *Queries) AcceptBid(ctx context.Context, bidid string) error {
+	_, err := q.db.ExecContext(ctx, acceptBid, bidid)
+	return err
+}
+
 const createAccount = `-- name: CreateAccount :exec
 INSERT INTO Users (UserID, Name, Email, Password,Type)
 VALUES (?,?,?,?,?)
@@ -30,6 +39,30 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) er
 		arg.Email,
 		arg.Password,
 		arg.Type,
+	)
+	return err
+}
+
+const createBid = `-- name: CreateBid :exec
+INSERT INTO Bids (BidId, CommodityId, UserID, Price,Duration)
+VALUES (?,?,?,?,?)
+`
+
+type CreateBidParams struct {
+	Bidid       string
+	Commodityid string
+	Userid      string
+	Price       string
+	Duration    int32
+}
+
+func (q *Queries) CreateBid(ctx context.Context, arg CreateBidParams) error {
+	_, err := q.db.ExecContext(ctx, createBid,
+		arg.Bidid,
+		arg.Commodityid,
+		arg.Userid,
+		arg.Price,
+		arg.Duration,
 	)
 	return err
 }
@@ -91,6 +124,49 @@ func (q *Queries) DeleteVerification(ctx context.Context, userid string) error {
 	return err
 }
 
+const getBidsForCommodity = `-- name: GetBidsForCommodity :many
+SELECT BidId, CommodityId, UserID, Price, Status, Duration FROM Bids WHERE CommodityId = ?
+`
+
+type GetBidsForCommodityRow struct {
+	Bidid       string
+	Commodityid string
+	Userid      string
+	Price       string
+	Status      string
+	Duration    int32
+}
+
+func (q *Queries) GetBidsForCommodity(ctx context.Context, commodityid string) ([]GetBidsForCommodityRow, error) {
+	rows, err := q.db.QueryContext(ctx, getBidsForCommodity, commodityid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetBidsForCommodityRow
+	for rows.Next() {
+		var i GetBidsForCommodityRow
+		if err := rows.Scan(
+			&i.Bidid,
+			&i.Commodityid,
+			&i.Userid,
+			&i.Price,
+			&i.Status,
+			&i.Duration,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCommodities = `-- name: GetCommodities :many
 SELECT CommodityId, UserID, Name, Description, Price, Status, Category, CreatedAt, UpdatedAt FROM Commodities
 `
@@ -140,6 +216,17 @@ func (q *Queries) GetCommodities(ctx context.Context) ([]GetCommoditiesRow, erro
 	return items, nil
 }
 
+const getCommoditiesByBidId = `-- name: GetCommoditiesByBidId :one
+SELECT CommodityId FROM Bids WHERE BidId = ?
+`
+
+func (q *Queries) GetCommoditiesByBidId(ctx context.Context, bidid string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getCommoditiesByBidId, bidid)
+	var commodityid string
+	err := row.Scan(&commodityid)
+	return commodityid, err
+}
+
 const getCommoditiesByCategory = `-- name: GetCommoditiesByCategory :many
 SELECT CommodityId, UserID, Name, Description, Price, Status, Category, CreatedAt, UpdatedAt FROM Commodities WHERE Category = ?
 `
@@ -187,6 +274,39 @@ func (q *Queries) GetCommoditiesByCategory(ctx context.Context, category string)
 		return nil, err
 	}
 	return items, nil
+}
+
+const getCommodity = `-- name: GetCommodity :one
+SELECT CommodityId, UserID, Name, Description, Price, Status, Category, CreatedAt, UpdatedAt FROM Commodities WHERE CommodityId = ?
+`
+
+type GetCommodityRow struct {
+	Commodityid string
+	Userid      string
+	Name        string
+	Description string
+	Price       string
+	Status      string
+	Category    string
+	Createdat   time.Time
+	Updatedat   time.Time
+}
+
+func (q *Queries) GetCommodity(ctx context.Context, commodityid string) (GetCommodityRow, error) {
+	row := q.db.QueryRowContext(ctx, getCommodity, commodityid)
+	var i GetCommodityRow
+	err := row.Scan(
+		&i.Commodityid,
+		&i.Userid,
+		&i.Name,
+		&i.Description,
+		&i.Price,
+		&i.Status,
+		&i.Category,
+		&i.Createdat,
+		&i.Updatedat,
+	)
+	return i, err
 }
 
 const getOTP = `-- name: GetOTP :one
@@ -250,6 +370,20 @@ func (q *Queries) GetUserIDByEmail(ctx context.Context, email string) (string, e
 	var userid string
 	err := row.Scan(&userid)
 	return userid, err
+}
+
+const updateCommodityStatus = `-- name: UpdateCommodityStatus :exec
+UPDATE Commodities SET Status = ? WHERE CommodityId = ?
+`
+
+type UpdateCommodityStatusParams struct {
+	Status      string
+	Commodityid string
+}
+
+func (q *Queries) UpdateCommodityStatus(ctx context.Context, arg UpdateCommodityStatusParams) error {
+	_, err := q.db.ExecContext(ctx, updateCommodityStatus, arg.Status, arg.Commodityid)
+	return err
 }
 
 const verifyAccount = `-- name: VerifyAccount :exec
